@@ -27,4 +27,3 @@ def test_model(small_llm_model: Small_LLM_Model):
         tokens.append(logits.index(max(logits)))
         print(f"{i}")
     print(small_llm_model.decode(tokens))
-
