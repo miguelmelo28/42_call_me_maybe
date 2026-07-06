@@ -12,8 +12,11 @@ def test_given_json(given_json) -> None:
     data = TypeAdapter(list[Function]).validate_json(given_json)
     print(data)
 
+def test_list_parsing(given_json) -> None:
+    print(Function.parse_list_json(given_json))
+
 @pytest.mark.xfail
-def test_bad_json(given_json):
+def test_bad_json():
     bad_json = """  {
     "name": "fn_add_numbers",
     "description": "Add two numbers together and return their sum.",
