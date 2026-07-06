@@ -1,6 +1,3 @@
-run: sync
-	uv run main.py
-
 sync:
 	uv sync
 
@@ -10,6 +7,7 @@ debug:
 clean:
 	rm -rf .mypy_cache
 	rm -rf .pytest_cache
+# 	rm .python-version
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 
 

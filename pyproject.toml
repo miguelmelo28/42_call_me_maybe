@@ -24,3 +24,6 @@ members = [
 
 [tool.uv.sources]
 llm-sdk = { workspace = true }
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
