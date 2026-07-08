@@ -1,25 +1,30 @@
 from pytest import fixture
 from llm_sdk import Small_LLM_Model
 from torch import Tensor
+import pytest
+
 
 @fixture(scope="module")
 def small_llm_model() -> Small_LLM_Model:
     return Small_LLM_Model()
 
+@pytest.mark.slow
 def test_is_function(small_llm_model: Small_LLM_Model) -> None:
     assert isinstance(small_llm_model.encode("hi"), Tensor)
 
+@pytest.mark.slow
 def test_get_logits_from_input_ids(small_llm_model: Small_LLM_Model) -> None:
     logits = small_llm_model.get_logits_from_input_ids([1,2,8])
     # print(f"{logits = }")
     assert isinstance(logits, list)
     # assert logits == [0.001, 0.002, 0.997]
 
+@pytest.mark.slow
 def test_get_vocab(small_llm_model: Small_LLM_Model) -> None:
     vocab = small_llm_model.get_path_to_vocab_file()
     print(f"{vocab = }")
 
-
+@pytest.mark.slow
 def test_model(small_llm_model: Small_LLM_Model):
     tokens = small_llm_model.encode("I'm testing this thing let's see")[0].tolist()
     for i in range(100):

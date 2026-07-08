@@ -18,6 +18,6 @@ def test_list_parsing(given_json) -> None:
 
 @pytest.mark.parametrize("bad_data", ['"prompt": "Greet john"',
                           r'{"promp": "Greet john"}'])
-@pytest.mark.xfail
+@pytest.mark.xfail(strict=True)
 def test_bad_json(bad_data) -> None:
     Prompt.model_validate_json(bad_data)

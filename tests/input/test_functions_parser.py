@@ -15,10 +15,8 @@ def test_given_json(given_json) -> None:
 def test_list_parsing(given_json) -> None:
     print(Function.parse_list_json(given_json))
 
-@pytest.mark.xfail
-def test_bad_json():
-    bad_json = """  {
-    "name": "fn_add_numbers",
+BAD_FUNCTIONS = [
+  { "name": "fn_add_numbers",
     "description": "Add two numbers together and return their sum.",
     "parameters": {
       "a": {
@@ -31,5 +29,53 @@ def test_bad_json():
     "returns": {
       "typ": "number"
     }
-  }"""
-    print(Function.model_validate_json(bad_json))
+  },
+  { "name": "fn_add_numbers",
+    "description": "Add two numbers together and return their sum.",
+    "parameters": {
+      "a": {
+        "type": "number"
+      },
+      "b": {
+        "type": "str"
+      }
+    },
+    "returns": {
+      "type": "number"
+    }
+  },
+  { "name": "fn_add_numbers",
+    "description": "Add two numbers together and return their sum.",
+    "parameters": {
+      "a": {
+        "type": "string"
+      },
+      "b": {
+        "type": "number"
+      }
+    },
+    "returns": {
+      "type": "str"
+    }
+  },
+  { "name": "fn_add_numbers",
+    "description": "Add two numbers together and return their sum.",
+    "parameters": {
+      "a": {
+        "type": "number"
+      },
+      "b": {
+        "type": "number"
+      }
+    },
+    "returns": {
+      "type": "number"
+    }
+  }
+]
+
+@pytest.mark.parametrize("bad_function", BAD_FUNCTIONS)
+@pytest.mark.xfail(strict=True)
+def test_bad_json(bad_function):
+    print(Function.model_validate_json(bad_function))
+
