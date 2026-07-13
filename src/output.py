@@ -1,4 +1,4 @@
-from src.parser import Function, Prompt
+from parser import Function, Prompt
 from pydantic import BaseModel, model_validator, field_serializer, ConfigDict
 from typing import Self
 

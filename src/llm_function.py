@@ -1,5 +1,5 @@
-from src.parser import Function, Prompt
-from src.output import Response
+from parser import Function, Prompt
+from output import Response
 from llm_sdk import Small_LLM_Model
 from pydantic import TypeAdapter
 from typing import Self
