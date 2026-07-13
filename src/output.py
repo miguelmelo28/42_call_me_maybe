@@ -1,6 +1,7 @@
-from parser import Function, Prompt
+from src.parser import Function, Prompt
 from pydantic import BaseModel, model_validator, field_serializer, ConfigDict
 from typing import Self
+
 
 class Response(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -28,11 +29,11 @@ class Response(BaseModel):
             dictionary: dict[str, type] = {"number": float, "string": str}
             _type: str = self.name.parameters[param]["type"]
             if not isinstance(self.parameters[param], dictionary[_type]):
-                raise ValueError(f"Argument {param} expects {_type}, got " \
-                                 f"{self.parameters[param]} (type " \
+                raise ValueError(f"Argument {param} expects {_type}, got "
+                                 f"{self.parameters[param]} (type "
                                  f"{type(self.parameters[param])}) instead")
         return self
-    
+
     @field_serializer('name', mode="plain", when_used="json")
     def function_name(self, name: Function) -> str:
         return name.name

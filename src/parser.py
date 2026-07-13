@@ -15,7 +15,7 @@ class Function(BaseModel):
     @classmethod
     def parse_list_json(cls, data: str) -> list[Self]:
         return TypeAdapter(list[cls]).validate_json(data)  # type: ignore
-    
+
     def function_description(self) -> str:
         return self.name + ' : ' + self.description
 
@@ -25,6 +25,6 @@ class Prompt(BaseModel):
 
     prompt: str
 
-    @classmethod    
+    @classmethod
     def parse_list_json(cls, data: str) -> list[Self]:
         return TypeAdapter(list[cls]).validate_json(data)  # type: ignore

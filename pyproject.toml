@@ -30,3 +30,6 @@ pythonpath = ["src"]
 markers = [
     "slow: tests that take a long time",
 ]
+
+[tool.mypy]
+mypy_path = "llm_sdk"

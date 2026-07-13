@@ -1,10 +1,11 @@
-from parser import Function, Prompt
-from output import Response
+from src.parser import Function, Prompt
+from src.output import Response
 from llm_sdk import Small_LLM_Model
 from pydantic import TypeAdapter
 from typing import Self
 from collections.abc import Callable
 from itertools import count
+
 
 class LLM_Function:
     def __init__(self, llm_model: Small_LLM_Model,
@@ -13,10 +14,10 @@ class LLM_Function:
         self.functions = functions
 
     @classmethod
-    def from_json(cls, llm_model, json_functions: str)-> Self:
+    def from_json(cls, llm_model: Small_LLM_Model, json_functions: str) -> Self:
         functions = TypeAdapter(list[Function]).validate_json(json_functions)
         return cls(llm_model, functions)
-    
+
     def get_response(self, prompt: Prompt) -> Response:
         context = self._build_context(prompt)
         function = self._get_function(context)
@@ -30,7 +31,6 @@ class LLM_Function:
         context += "\nUsing ONLY these functions solve this problem: " + prompt.prompt
         context += "\nFunction = fn_"
         return context
-
 
     def _get_next_word(self, context: str,
                        condition: Callable[[str], bool] = lambda w: True) -> str:
@@ -49,7 +49,6 @@ class LLM_Function:
                     break
         return word_list[0]
 
-
     def _get_function(self, context: str) -> Function:
         function: str = self._get_next_word(context, lambda w: any("fn_" + w in f.name for f in self.functions))
         function = "fn_" + function
@@ -58,10 +57,9 @@ class LLM_Function:
                 return func
         else:
             raise ValueError(f"invalid function: {function}")
-        
 
-    def _get_parameters(self, context: str, func: Function) -> dict[str, str]:
-        params: dict[str, str] = {}
+    def _get_parameters(self, context: str, func: Function) -> dict[str, str | float]:
+        params: dict[str, str | float] = {}
         context += func.name
         for arg in func.parameters:
             context += "\n" + arg + " = "
