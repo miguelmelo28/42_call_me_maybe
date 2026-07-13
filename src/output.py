@@ -31,6 +31,7 @@ class Response(BaseModel):
                 raise ValueError(f"Argument {param} expects {_type}, got " \
                                  f"{self.parameters[param]} (type " \
                                  f"{type(self.parameters[param])}) instead")
+        return self
     
     @field_serializer('name', mode="plain", when_used="json")
     def function_name(self, name: Function) -> str:

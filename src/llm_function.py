@@ -4,7 +4,6 @@ from llm_sdk import Small_LLM_Model
 from pydantic import TypeAdapter
 from typing import Self
 from collections.abc import Callable
-from heapq import nlargest
 from itertools import count
 
 class LLM_Function:
@@ -18,10 +17,11 @@ class LLM_Function:
         functions = TypeAdapter(list[Function]).validate_json(json_functions)
         return cls(llm_model, functions)
     
-    def get_response(self, prompt: Prompt):
+    def get_response(self, prompt: Prompt) -> Response:
         context = self._build_context(prompt)
-        context += self._get_next_word(context, lambda w: any("fn_" + w in f.name for f in self.functions))
-        return self._get_parameters(context)
+        function = self._get_function(context)
+        parameters = self._get_parameters(context[:-3], function)
+        return Response(prompt=prompt, name=function, parameters=parameters)
 
     def _build_context(self, prompt: Prompt) -> str:
         context = "You have these available functions:\n"
@@ -49,20 +49,24 @@ class LLM_Function:
                     break
         return word_list[0]
 
-    def _get_parameters(self, context: str):
-        params = []
-        function_str = context.split()[-1]
+
+    def _get_function(self, context: str) -> Function:
+        function: str = self._get_next_word(context, lambda w: any("fn_" + w in f.name for f in self.functions))
+        function = "fn_" + function
         for func in self.functions:
-            if func.name == function_str:
-                function = func
-                params.append(func.name)
-                break
+            if func.name == function:
+                return func
         else:
-            raise ValueError(f"invalid function: {function_str}")
-        for param in function.parameters:
-            context += "\n" + param + " = "
+            raise ValueError(f"invalid function: {function}")
+        
+
+    def _get_parameters(self, context: str, func: Function) -> dict[str, str]:
+        params: dict[str, str] = {}
+        context += func.name
+        for arg in func.parameters:
+            context += "\n" + arg + " = "
             param = self._get_next_word(context)
-            params.append(param)
+            params[arg] = param
             context += param
         print(context)
         return params
