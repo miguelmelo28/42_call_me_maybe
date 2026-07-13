@@ -25,7 +25,8 @@ class LLM_Function:
 
     def _build_context(self, prompt: Prompt) -> str:
         context = "You have these available functions:\n"
-        context += TypeAdapter(list[Function]).dump_json(self.functions).decode()
+        context += "\n".join(func.function_description() for func in self.functions)
+        # context += TypeAdapter[list[Function]].dump_json(self.functions)
         context += "\nUsing ONLY these functions solve this problem: " + prompt.prompt
         context += "\nFunction = fn_"
         return context
@@ -60,5 +61,8 @@ class LLM_Function:
             raise ValueError(f"invalid function: {function_str}")
         for param in function.parameters:
             context += "\n" + param + " = "
-            params.append(self._get_next_word(context))
+            param = self._get_next_word(context)
+            params.append(param)
+            context += param
+        print(context)
         return params
