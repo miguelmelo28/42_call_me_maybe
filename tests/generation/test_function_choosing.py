@@ -8,8 +8,8 @@ from pydantic import TypeAdapter
 
 json_prompt_functions = ["fn_add_numbers",
                          "fn_add_numbers",
-                         "fun_greet",
-                         "fun_greet",
+                         "fn_greet",
+                         "fn_greet",
                          "fn_reverse_string",
                          "fn_reverse_string",
                          "fn_get_square_root",
@@ -77,11 +77,9 @@ def test_adder_json(function_llm_from_json: LLM_Function, prompt: str):
     response = function_llm_from_json.get_response(Prompt(prompt=prompt))
     print(response)
     assert response.function.name == "fn_add_numbers"
-    
+
 @pytest.mark.parametrize("prompt, answer", list(zip(prompt_list_from_json(), json_prompt_functions)))
 def test_all_json_prompts_and_functions(prompt: Prompt, answer: str, function_llm_from_json):
     response = function_llm_from_json.get_response(prompt)
     print(response)
     assert response.function.name == answer
-
-#helloo i just wanna test out
