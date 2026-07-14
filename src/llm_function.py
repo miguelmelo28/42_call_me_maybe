@@ -22,7 +22,7 @@ class LLM_Function:
         context = self._build_context(prompt)
         function = self._get_function(context)
         parameters = self._get_parameters(context[:-3], function)
-        return Response(prompt=prompt, name=function, parameters=parameters)
+        return Response(prompt=prompt, function=function, parameters=parameters)
 
     def _build_context(self, prompt: Prompt) -> str:
         context = "You have these available functions:\n"
@@ -66,5 +66,5 @@ class LLM_Function:
             param = self._get_next_word(context)
             params[arg] = param
             context += param
-        print(context)
+        #print(context)
         return params
