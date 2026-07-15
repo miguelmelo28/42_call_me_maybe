@@ -54,8 +54,6 @@ def test_get_next_word(empty_function_llm: LLM_Function, phrase: str):
     print(wd)
     assert len(wd.split()) == 1
 
-
-
 @pytest.mark.parametrize("condition", [lambda k: 'a' not in k, lambda k: 'pear' in k])
 def test_get_next_word_condition(empty_function_llm: LLM_Function, condition):
     phrase = "the yellow fruit that monkeys eat is called a"
@@ -67,19 +65,22 @@ def test_get_next_word_condition(empty_function_llm: LLM_Function, condition):
 
 @pytest.mark.parametrize("prompt", ["What is the adition of 5 + 2?", "Please add 5 and 2", "Add 2 and 5", "Sum of both 5 and 2"])
 def test_adder_example(function_llm_adder: LLM_Function, prompt: str):
-    response = function_llm_adder.get_response(Prompt(prompt=prompt))
-    print(response)
-    assert response.function.name == "fn_add_numbers"
+    context = function_llm_adder._build_context(Prompt(prompt=prompt))
+    func = function_llm_adder._get_function(context)
+    print(func)
+    assert func.name == "fn_add_numbers"
 
 
 @pytest.mark.parametrize("prompt", ["What is the adition of 5 + 2?", "Please add 5 and 2", "Add 2 and 5", "Sum of both 5 and 2"])
 def test_adder_json(function_llm_from_json: LLM_Function, prompt: str):
-    response = function_llm_from_json.get_response(Prompt(prompt=prompt))
-    print(response)
-    assert response.function.name == "fn_add_numbers"
+    context = function_llm_from_json._build_context(Prompt(prompt=prompt))
+    func = function_llm_from_json._get_function(context)
+    print(func)
+    assert func.name == "fn_add_numbers"
 
 @pytest.mark.parametrize("prompt, answer", list(zip(prompt_list_from_json(), json_prompt_functions)))
 def test_all_json_prompts_and_functions(prompt: Prompt, answer: str, function_llm_from_json):
-    response = function_llm_from_json.get_response(prompt)
-    print(response)
-    assert response.function.name == answer
+    context = function_llm_from_json._build_context(prompt)
+    func = function_llm_from_json._get_function(context)
+    print(func)
+    assert func.name == answer

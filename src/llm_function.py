@@ -22,7 +22,7 @@ class LLM_Function:
     def get_response(self, prompt: Prompt) -> Response:
         context = self._build_context(prompt)
         function = self._get_function(context)
-        parameters = self._get_parameters(context[:3], function)
+        parameters = self._get_parameters(context, function, prompt.prompt)
         return Response(prompt=prompt, function=function, parameters=parameters)
 
     # def _build_context(self, prompt: Prompt) -> str:
@@ -42,14 +42,15 @@ class LLM_Function:
 
     def _build_context(self, prompt: Prompt) -> str:
         # context += TypeAdapter[list[Function]].dump_json(self.functions)
-        context = "This problem: " + prompt.prompt + ", can be solved with this function:"
+        context = "\n".join(f.get_formated() for f in self.functions)
+        context += "\nThis problem: " + prompt.prompt + ", can be solved with this function:"
         #context += "\nFunction = fn_"
         return context
 
-    def _get_function_word(self, context: str, fn: str = "fn_") -> str:
+    def _get_function_word(self, context: str) -> str:
         word = ""
         functions = [f.name for f in self.functions]
-        while (fn + word).strip() not in functions:
+        while (word).strip() not in functions:
             encoded_ctxt: list[int] = self.llm_model.encode(context + word).tolist()[0]
             next = self.llm_model.get_logits_from_input_ids(encoded_ctxt)
             chosens = sorted(enumerate(next), key=lambda x: x[1], reverse=True)
@@ -60,21 +61,41 @@ class LLM_Function:
                 # print(f"\n{word=}\n{wordpart=}\n")
                 # sleep(0.005)
 
-                if any(fn + word + wordpart in f for f in functions) and wordpart:
+                if any(f.startswith(word + wordpart) for f in functions) and wordpart:
                     word += wordpart
                     break
             else:
-                functions = [func for func in functions if not fn + word in func]
+                functions = [func for func in functions if not word in func]
                 word=""
                 print(functions)
         print(word)
         return word.strip()
 
-    def _get_next_string(self, context: str) -> str:
+    def _get_next_string(self, context: str, prompt: str) -> str:
         string = ""
+        divider = "'\""
+        while not string.endswith(divider) or len(string) <= 1:
+            encoded_ctxt: list[int] = self.llm_model.encode(context + string).tolist()[0]
+            next = self.llm_model.get_logits_from_input_ids(encoded_ctxt)
+            chosens = sorted(enumerate(next), key=lambda x: x[1], reverse=True)
+            for i in count():
+                idx_chosen = chosens[i][0]
+                # print(chosens[i])
+                wordpart = self.llm_model.decode([idx_chosen])
+                if string + wordpart in prompt:
+                    if string == "":
+                        if any(wordpart.startswith(d) for d in divider):
+                            divider = wordpart[0]
+                        else:
+                            continue
+                    string += wordpart
+                    break
+        print(string)
+        return string[1:-1]
 
     # def _get_number_word(self, context: str) -> str:
-
+    #     number = ""
+        
 
     def _get_next_word(self, context: str,
                        condition: Callable[[str], bool] = lambda w: True) -> str:
@@ -94,23 +115,27 @@ class LLM_Function:
         print(word)
         return word_list[0]
 
-    def _get_function(self, context: str, fn = "fn_") -> Function:
+    def _get_function(self, context: str) -> Function:
         function: str = self._get_function_word(context)
         # function: str = self._get_next_word(context, lambda w: any("fn_" + w in f.name for f in self.functions))
-        function = fn + function
         for func in self.functions:
             if func.name == function:
                 return func
         else:
             raise ValueError(f"invalid function: {function}")
 
-    def _get_parameters(self, context: str, func: Function) -> dict[str, str | float]:
+    def _get_parameters(self, context: str, func: Function, prompt: str) -> dict[str, str | float]:
         params: dict[str, str | float] = {}
-        context += func.name
+        context = context + func.name + ", given the parameters"
         for arg in func.parameters:
-            context += "\n" + arg + " = "
-            param = self._get_next_word(context)
+            arg_type = func.parameters[arg]["type"]
+            context += f" {arg}({arg_type}): "
+            match arg_type:
+                case "string":
+                    param = self._get_next_string(context, prompt)
+                case "number":
+                    param = self._get_next_word(context)
             params[arg] = param
-            context += param
-        #print(context)
+            context += f"{param},"
+        print(context)
         return params
