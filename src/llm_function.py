@@ -40,11 +40,16 @@ class LLM_Function:
     #     context += prompt.prompt + "' is "
     #     return context
 
-    def _build_context(self, prompt: Prompt) -> str:
+    def _build_context_functions(self, prompt: Prompt) -> str:
         # context += TypeAdapter[list[Function]].dump_json(self.functions)
         context = "\n".join(f.get_formated() for f in self.functions)
         context += "\nThis problem: " + prompt.prompt + ", can be solved with this function:"
         #context += "\nFunction = fn_"
+        return context
+    
+    def _build_context_parameters(self, prompt: Prompt, function: Function) -> str:
+        context = function.get_formated()
+        context += f"\n It can be used to solve this problem: {prompt.prompt} with the following arguments: "
         return context
 
     def _get_function_word(self, context: str) -> str:
@@ -124,15 +129,15 @@ class LLM_Function:
         else:
             raise ValueError(f"invalid function: {function}")
 
-    def _get_parameters(self, context: str, func: Function, prompt: str) -> dict[str, str | float]:
+    def _get_parameters(self, func: Function, prompt: Prompt) -> dict[str, str | float]:
         params: dict[str, str | float] = {}
-        context = context + func.name + ", given the parameters"
+        context = self._build_context_parameters(prompt, func)
         for arg in func.parameters:
             arg_type = func.parameters[arg]["type"]
             context += f" {arg}({arg_type}): "
             match arg_type:
                 case "string":
-                    param = self._get_next_string(context, prompt)
+                    param = self._get_next_string(context, prompt.prompt)
                 case "number":
                     param = self._get_next_word(context)
             params[arg] = param
