@@ -21,9 +21,8 @@ class LLM_Function:
         return cls(llm_model, functions)
 
     def get_response(self, prompt: Prompt) -> Response:
-        context: str = self._build_context(prompt)
-        function: Function = self._get_function(context)
-        parameters = self._get_parameters(context, function, prompt.prompt)
+        function: Function = self._get_function(prompt)
+        parameters = self._get_parameters(function, prompt)
         return Response(prompt=prompt, function=function, parameters=parameters)
 
     # def _build_context(self, prompt: Prompt) -> str:
@@ -34,19 +33,19 @@ class LLM_Function:
     #     context += "\nFunction = fn_"
     #     return context
 
-    def _build_context(self, prompt: Prompt) -> str:
+    def _build_context_function(self, prompt: Prompt) -> str:
         context = "Out of the functions "
         context += ", ".join([f.name for f in self.functions])
         context += " the one that solves this query: '"
         context += prompt.prompt + "' is "
         return context
 
-    def _build_context_functions(self, prompt: Prompt) -> str:
-        # context += TypeAdapter[list[Function]].dump_json(self.functions)
-        context = "\n".join(f.get_formated() for f in self.functions)
-        context += "\nThis problem: " + prompt.prompt + ", can be solved with this function:"
-        #context += "\nFunction = fn_"
-        return context
+    # def _build_context_functions(self, prompt: Prompt) -> str:
+    #     # context += TypeAdapter[list[Function]].dump_json(self.functions)
+    #     context = "\n".join(f.get_formated() for f in self.functions)
+    #     context += "\nThis problem: " + prompt.prompt + ", can be solved with this function:"
+    #     #context += "\nFunction = fn_"
+    #     return context
     
     def _build_context_parameters(self, prompt: Prompt, function: Function) -> str:
         context = function.get_formated()
@@ -65,8 +64,8 @@ class LLM_Function:
                 idx_chosen = chosens[i][0]
                 # print(chosens[i])
                 wordpart = self.llm_model.decode([idx_chosen]).strip()
-                print(f"\n{word=}\n{wordpart=}\n")
-                sleep(0.05)
+                # print(f"\n{word=}\n{wordpart=}\n")
+                # sleep(0.05)
 
                 if any(f.startswith(word + wordpart) for f in functions) and wordpart:
                     word += wordpart
@@ -74,11 +73,11 @@ class LLM_Function:
             else:
                 functions = [func for func in functions if not word in func]
                 word=""
-                print(functions)
+                # print(functions)
         print(word)
         return word.strip()
 
-    def _get_next_string(self, context: str, prompt: str) -> str:
+    def _get_next_string(self, context: str) -> str:
         string = "'"
         while not (string.endswith("'") or string.endswith("\n")) or len(string) <= 1:
             encoded_ctxt: list[int] = self.llm_model.encode(context + string).tolist()[0]
@@ -87,10 +86,10 @@ class LLM_Function:
             idx_chosen = chosens[0][0]
             wordpart = self.llm_model.decode([idx_chosen])
             string += wordpart
-            print(string)
+            # print(string)
         return string[1:string.rfind("'")]
 
-    def _get_number(self, context: str) -> float | int:
+    def _get_number(self, context: str) -> float:
         number: str = self._get_next_word(context)
         allowed = set("0123456789.")
         number: str = "".join(c for c in number if c in allowed)
@@ -98,7 +97,6 @@ class LLM_Function:
             number = number[:-1]
         return float(number)
 
-        
 
     def _get_next_word(self, context: str,
                        condition: Callable[[str], bool] = lambda w: True) -> str:
@@ -118,7 +116,8 @@ class LLM_Function:
         print(word)
         return word_list[0]
 
-    def _get_function(self, context: str) -> Function:
+    def _get_function(self, prompt = Prompt) -> Function:
+        context = self._build_context_function(prompt)
         function: str = self._get_function_word(context)
         # function: str = self._get_next_word(context, lambda w: any("fn_" + w in f.name for f in self.functions))
         for func in self.functions:
@@ -135,9 +134,10 @@ class LLM_Function:
             context += f"{arg}({arg_type}) = "
             match arg_type:
                 case "string":
-                    param = self._get_next_string(context, prompt.prompt)
+                    param = self._get_next_string(context)
                 case "number":
                     param = self._get_number(context)
+            params[arg] = param
             context += f'{str(param)}\n'
         print(context)
         return params
