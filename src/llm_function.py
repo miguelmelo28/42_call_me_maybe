@@ -50,12 +50,13 @@ class LLM_Function:
     
     def _build_context_parameters(self, prompt: Prompt, function: Function) -> str:
         context = function.get_formated()
-        context += f"\n It can be used to solve this problem: {prompt.prompt} with the following arguments: "
+        context += f"\nIt can be used to solve this problem: \"{prompt.prompt}\" using the following arguments:\n"
         return context
 
     def _get_function_word(self, context: str) -> str:
         word = ""
         functions = [f.name for f in self.functions]
+        print(context)
         while (word).strip() not in functions:
             encoded_ctxt: list[int] = self.llm_model.encode(context + word).tolist()[0]
             next = self.llm_model.get_logits_from_input_ids(encoded_ctxt)
@@ -64,8 +65,8 @@ class LLM_Function:
                 idx_chosen = chosens[i][0]
                 # print(chosens[i])
                 wordpart = self.llm_model.decode([idx_chosen]).strip()
-                # print(f"\n{word=}\n{wordpart=}\n")
-                # sleep(0.005)
+                print(f"\n{word=}\n{wordpart=}\n")
+                sleep(0.05)
 
                 if any(f.startswith(word + wordpart) for f in functions) and wordpart:
                     word += wordpart
@@ -79,17 +80,15 @@ class LLM_Function:
 
     def _get_next_string(self, context: str, prompt: str) -> str:
         string = "'"
-        while not string.endswith("'") or len(string) <= 1:
+        while not (string.endswith("'") or string.endswith("\n")) or len(string) <= 1:
             encoded_ctxt: list[int] = self.llm_model.encode(context + string).tolist()[0]
             next = self.llm_model.get_logits_from_input_ids(encoded_ctxt)
             chosens = sorted(enumerate(next), key=lambda x: x[1], reverse=True)
             idx_chosen = chosens[0][0]
             wordpart = self.llm_model.decode([idx_chosen])
-            print(wordpart)
-            sleep(0.05)
             string += wordpart
-        print(string)
-        return string[1:-1]
+            print(string)
+        return string[1:string.rfind("'")]
 
     def _get_number(self, context: str) -> float | int:
         number: str = self._get_next_word(context)
@@ -133,12 +132,12 @@ class LLM_Function:
         context = self._build_context_parameters(prompt, func)
         for arg in func.parameters:
             arg_type = func.parameters[arg]["type"]
-            context += f" {arg}({arg_type}):"
+            context += f"{arg}({arg_type}) = "
             match arg_type:
                 case "string":
                     param = self._get_next_string(context, prompt.prompt)
                 case "number":
                     param = self._get_number(context)
-            context += str(param)
+            context += f'{str(param)}\n'
         print(context)
         return params

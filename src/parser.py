@@ -20,7 +20,7 @@ class Function(BaseModel):
         return self.name + ' : ' + self.description
     
     def get_formated(self) -> str:
-        return f"The function {self.name} can {self.description}."
+        return f"The function {self.name} can {self.description}"
 
 
 class Prompt(BaseModel):

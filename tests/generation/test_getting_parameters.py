@@ -11,6 +11,11 @@ def test_adding_numbers(empty_function_llm: LLM_Function, adder_function: Functi
     print(parameters)
 
 @pytest.mark.parametrize("prompt", ["reverse the name 'miguel'", "put the phrase 'hello i am good how are u' in the oposite order", "'stay away' reverse the order of that"])
-def test_reverse_string(empty_function_llm: LLM_Function, reverse_function: Function, prompt):
-    parameters = empty_function_llm._get_parameters(reverse_function, Prompt(prompt=prompt))
+def test_reverse_string(function_llm_from_json, prompt):
+    parameters = function_llm_from_json._get_parameters(function_llm_from_json.functions[2], Prompt(prompt=prompt))
+    print(parameters)
+
+@pytest.mark.parametrize("prompt", ["Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS"])
+def test_regex_str(function_llm_from_json, prompt):
+    parameters = function_llm_from_json._get_parameters(function_llm_from_json.functions[4], Prompt(prompt=prompt))
     print(parameters)
