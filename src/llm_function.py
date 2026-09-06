@@ -10,9 +10,10 @@ from time import sleep
 
 class LLM_Function:
     def __init__(self, llm_model: Small_LLM_Model,
-                 functions: list[Function]) -> None:
+                 functions: list[Function], max_tries: int = 1000) -> None:
         self.llm_model = llm_model
         self.functions = functions
+        self.max_tries = max_tries
 
     @classmethod
     def from_json(cls, llm_model: Small_LLM_Model, json_functions: str) -> Self:
@@ -20,8 +21,8 @@ class LLM_Function:
         return cls(llm_model, functions)
 
     def get_response(self, prompt: Prompt) -> Response:
-        context = self._build_context(prompt)
-        function = self._get_function(context)
+        context: str = self._build_context(prompt)
+        function: Function = self._get_function(context)
         parameters = self._get_parameters(context, function, prompt.prompt)
         return Response(prompt=prompt, function=function, parameters=parameters)
 
@@ -33,12 +34,12 @@ class LLM_Function:
     #     context += "\nFunction = fn_"
     #     return context
 
-    # def _build_context(self, prompt: Prompt) -> str:
-    #     context = "Out of the functions "
-    #     context += ", ".join([f.name for f in self.functions])
-    #     context += " the one that solves this query: '"
-    #     context += prompt.prompt + "' is "
-    #     return context
+    def _build_context(self, prompt: Prompt) -> str:
+        context = "Out of the functions "
+        context += ", ".join([f.name for f in self.functions])
+        context += " the one that solves this query: '"
+        context += prompt.prompt + "' is "
+        return context
 
     def _build_context_functions(self, prompt: Prompt) -> str:
         # context += TypeAdapter[list[Function]].dump_json(self.functions)
@@ -59,7 +60,7 @@ class LLM_Function:
             encoded_ctxt: list[int] = self.llm_model.encode(context + word).tolist()[0]
             next = self.llm_model.get_logits_from_input_ids(encoded_ctxt)
             chosens = sorted(enumerate(next), key=lambda x: x[1], reverse=True)
-            for i in range(1000):
+            for i in range(self.max_tries):
                 idx_chosen = chosens[i][0]
                 # print(chosens[i])
                 wordpart = self.llm_model.decode([idx_chosen]).strip()
@@ -98,8 +99,14 @@ class LLM_Function:
         print(string)
         return string[1:-1]
 
-    # def _get_number_word(self, context: str) -> str:
-    #     number = ""
+    def _get_number(self, context: str) -> float | int:
+        number: str = self._get_next_word(context)
+        allowed = set("0123456789.")
+        number: str = "".join(c for c in number if c in allowed)
+        if number[-1] == '.':
+            number = number[:-1]
+        return float(number)
+
         
 
     def _get_next_word(self, context: str,
@@ -139,8 +146,7 @@ class LLM_Function:
                 case "string":
                     param = self._get_next_string(context, prompt.prompt)
                 case "number":
-                    param = self._get_next_word(context)
-            params[arg] = param
-            context += f"{param},"
+                    param = self._get_number(context)
+            context += str(param)
         print(context)
         return params

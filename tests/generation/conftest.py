@@ -24,6 +24,11 @@ def adder_function() -> Function:
                     parameters={"a": {"type": "number"}, "b": {"type": "number"}}, returns={"type": "number"})
 
 @fixture(scope="session")
+def reverse_function() -> Function:
+    return Function(name="fn_reverse_str", description="reverses a string and returns the reversed result",
+                    parameters={"s": {"type": "string"}}, returns={"type": "string"})
+
+@fixture(scope="session")
 def adder_prompt() -> Function:
     return Prompt(prompt="What is the adition of 5 + 2?")
 

@@ -9,3 +9,8 @@ from pydantic import TypeAdapter
 def test_adding_numbers(empty_function_llm: LLM_Function, adder_function: Function, prompt):
     parameters = empty_function_llm._get_parameters(adder_function, Prompt(prompt=prompt))
     print(parameters)
+
+@pytest.mark.parametrize("prompt", ["reverse the name 'miguel'", "put the phrase 'hello i am good how are u' in the oposite order", "'stay away' reverse the order of that"])
+def test_reverse_string(empty_function_llm: LLM_Function, reverse_function: Function, prompt):
+    parameters = empty_function_llm._get_parameters(reverse_function, Prompt(prompt=prompt))
+    print(parameters)
