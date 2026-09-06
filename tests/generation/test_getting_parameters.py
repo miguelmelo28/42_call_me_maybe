@@ -15,7 +15,7 @@ def test_reverse_string(function_llm_from_json, prompt):
     parameters = function_llm_from_json._get_parameters(function_llm_from_json.functions[2], Prompt(prompt=prompt))
     print(parameters)
 
-@pytest.mark.parametrize("prompt", ["Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS"])
+@pytest.mark.parametrize("prompt", ["Replace all numbers in \"Hello 34 I'm 233 years old\" with NUMBERS", "Substitute the word 'cat' with 'dog' in 'The cat sat on the mat with another cat", "Replace all vowels in 'Programming is fun' with asterisks"])
 def test_regex_str(function_llm_from_json, prompt):
     parameters = function_llm_from_json._get_parameters(function_llm_from_json.functions[4], Prompt(prompt=prompt))
     print(parameters)

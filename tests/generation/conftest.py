@@ -36,3 +36,8 @@ def adder_prompt() -> Function:
 @fixture(scope="session")
 def function_llm_adder(adder_function, model):
     return LLM_Function(model, [adder_function])
+
+@fixture(scope = "session")
+def prompt_list_from_json() -> list[Prompt]:
+    with open("tests/input/function_calling_tests.json") as f:
+        return TypeAdapter(list[Prompt]).validate_json(f.read())
