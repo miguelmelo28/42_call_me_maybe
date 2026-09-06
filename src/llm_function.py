@@ -78,24 +78,16 @@ class LLM_Function:
         return word.strip()
 
     def _get_next_string(self, context: str, prompt: str) -> str:
-        string = ""
-        divider = "'\""
-        while not string.endswith(divider) or len(string) <= 1:
+        string = "'"
+        while not string.endswith("'") or len(string) <= 1:
             encoded_ctxt: list[int] = self.llm_model.encode(context + string).tolist()[0]
             next = self.llm_model.get_logits_from_input_ids(encoded_ctxt)
             chosens = sorted(enumerate(next), key=lambda x: x[1], reverse=True)
-            for i in count():
-                idx_chosen = chosens[i][0]
-                # print(chosens[i])
-                wordpart = self.llm_model.decode([idx_chosen])
-                if string + wordpart in prompt:
-                    if string == "":
-                        if any(wordpart.startswith(d) for d in divider):
-                            divider = wordpart[0]
-                        else:
-                            continue
-                    string += wordpart
-                    break
+            idx_chosen = chosens[0][0]
+            wordpart = self.llm_model.decode([idx_chosen])
+            print(wordpart)
+            sleep(0.05)
+            string += wordpart
         print(string)
         return string[1:-1]
 
@@ -141,7 +133,7 @@ class LLM_Function:
         context = self._build_context_parameters(prompt, func)
         for arg in func.parameters:
             arg_type = func.parameters[arg]["type"]
-            context += f" {arg}({arg_type}): "
+            context += f" {arg}({arg_type}):"
             match arg_type:
                 case "string":
                     param = self._get_next_string(context, prompt.prompt)
