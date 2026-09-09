@@ -12,8 +12,9 @@ def main() -> None:
         args.functions_definition.read_text())
     prompts = TypeAdapter(list[Prompt]).validate_json(
         args.input.read_text())
-    llm = LLM_Function(Small_LLM_Model, functions=functions)
-    responses = [print(llm.get_response(prompt)) for prompt in prompts]
+    llm = LLM_Function(Small_LLM_Model(), functions=functions)
+    responses = [llm.get_response(prompt) for prompt in prompts]
+    print(responses)
     args.output.write_bytes(TypeAdapter(list[Response]).dump_json(responses,
                                                                    indent = 4))
     
