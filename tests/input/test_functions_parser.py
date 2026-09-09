@@ -1,4 +1,4 @@
-from parser import Function
+from src.parser import Function
 from pytest import fixture
 import pytest
 from pydantic import TypeAdapter

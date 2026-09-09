@@ -1,6 +1,6 @@
 from pytest import fixture, mark
-from output import Response
-from parser import Function, Prompt
+from src.output import Response
+from src.parser import Function, Prompt
 from pydantic import TypeAdapter
 
 responses = [

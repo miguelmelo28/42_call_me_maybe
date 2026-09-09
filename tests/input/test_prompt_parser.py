@@ -1,4 +1,4 @@
-from parser import Prompt
+from src.parser import Prompt
 from pytest import fixture
 import pytest
 from pydantic import TypeAdapter

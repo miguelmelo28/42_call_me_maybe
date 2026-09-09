@@ -1,6 +1,6 @@
-from llm_function import LLM_Function
+from src.llm_function import LLM_Function
 from llm_sdk import Small_LLM_Model
-from parser import Function, Prompt
+from src.parser import Function, Prompt
 from pytest import fixture
 import pytest
 from pydantic import TypeAdapter
