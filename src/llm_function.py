@@ -5,7 +5,6 @@ from pydantic import TypeAdapter
 from typing import Self
 from collections.abc import Callable
 from itertools import count
-from time import sleep
 
 
 class LLM_Function:
@@ -16,40 +15,29 @@ class LLM_Function:
         self.max_tries = max_tries
 
     @classmethod
-    def from_json(cls, llm_model: Small_LLM_Model, json_functions: str) -> Self:
+    def from_json(cls, llm_model: Small_LLM_Model,
+                  json_functions: str) -> Self:
         functions = TypeAdapter(list[Function]).validate_json(json_functions)
         return cls(llm_model, functions)
 
     def get_response(self, prompt: Prompt) -> Response:
         function: Function = self._get_function(prompt)
         parameters = self._get_parameters(function, prompt)
-        return Response(prompt=prompt, function=function, parameters=parameters)
-
-    # def _build_context(self, prompt: Prompt) -> str:
-    #     context = "You have these available functions:\n"
-    #     context += "\n".join(func.function_description() for func in self.functions)
-    #     # context += TypeAdapter[list[Function]].dump_json(self.functions)
-    #     context += "\nUsing ONLY these functions solve this problem: " + prompt.prompt
-    #     context += "\nFunction = fn_"
-    #     return context
+        return Response(prompt=prompt, function=function,
+                        parameters=parameters)
 
     def _build_context_function(self, prompt: Prompt) -> str:
         context = "Out of the functions "
-        context += ", ".join([f.name for f in self.functions])
+        context += " ".join([f.name for f in self.functions])
         context += " the one that solves this query: '"
         context += prompt.prompt + "' is "
         return context
 
-    # def _build_context_functions(self, prompt: Prompt) -> str:
-    #     # context += TypeAdapter[list[Function]].dump_json(self.functions)
-    #     context = "\n".join(f.get_formated() for f in self.functions)
-    #     context += "\nThis problem: " + prompt.prompt + ", can be solved with this function:"
-    #     #context += "\nFunction = fn_"
-    #     return context
-    
-    def _build_context_parameters(self, prompt: Prompt, function: Function) -> str:
+    def _build_context_parameters(self, prompt: Prompt,
+                                  function: Function) -> str:
         context = function.get_formated()
-        context += f"\nIt can be used to solve this problem: \"{prompt.prompt}\" using the following arguments:\n"
+        context += f"\nIt can be used to solve this problem:" \
+                   f"\"{prompt.prompt}\" using the following arguments:\n"
         return context
 
     def _get_function_word(self, context: str) -> str:
@@ -57,7 +45,7 @@ class LLM_Function:
         functions = [f.name for f in self.functions]
         print(context)
         while (word).strip() not in functions:
-            encoded_ctxt: list[int] = self.llm_model.encode(context + word).tolist()[0]
+            encoded_ctxt = self.llm_model.encode(context + word).tolist()[0]
             next = self.llm_model.get_logits_from_input_ids(encoded_ctxt)
             chosens = sorted(enumerate(next), key=lambda x: x[1], reverse=True)
             for i in range(self.max_tries):
@@ -67,20 +55,22 @@ class LLM_Function:
                 # print(f"\n{word=}\n{wordpart=}\n")
                 # sleep(0.05)
 
-                if any(f.startswith(word + wordpart) for f in functions) and wordpart:
+                if (any(f.startswith(word + wordpart) for f in functions)
+                   and wordpart):
                     word += wordpart
                     break
             else:
-                functions = [func for func in functions if not word in func]
-                word=""
+                functions = [func for func in functions if word not in func]
+                word = ""
                 # print(functions)
         print(word)
         return word.strip()
 
     def _get_next_string(self, context: str) -> str:
         string = "'"
-        while not (string.endswith("'") or string.endswith("\n")) or len(string) <= 1:
-            encoded_ctxt: list[int] = self.llm_model.encode(context + string).tolist()[0]
+        while (not (string.endswith("'") or string.endswith("\n"))
+               or len(string) <= 1):
+            encoded_ctxt = self.llm_model.encode(context + string).tolist()[0]
             next = self.llm_model.get_logits_from_input_ids(encoded_ctxt)
             chosens = sorted(enumerate(next), key=lambda x: x[1], reverse=True)
             idx_chosen = chosens[0][0]
@@ -97,12 +87,11 @@ class LLM_Function:
             number = number[:-1]
         return float(number)
 
-
     def _get_next_word(self, context: str,
                        condition: Callable[[str], bool] = lambda w: True) -> str:
         word = ""
         while len(word_list := word.split()) < 2 and not word.endswith(" "):
-            encoded_ctxt: list[int] = self.llm_model.encode(context + word).tolist()[0]
+            encoded_ctxt = self.llm_model.encode(context + word).tolist()[0]
             next = self.llm_model.get_logits_from_input_ids(encoded_ctxt)
             chosens = sorted(enumerate(next), key=lambda x: x[1], reverse=True)
             for i in count():
@@ -116,17 +105,17 @@ class LLM_Function:
         print(word)
         return word_list[0]
 
-    def _get_function(self, prompt = Prompt) -> Function:
+    def _get_function(self, prompt=Prompt) -> Function:
         context = self._build_context_function(prompt)
         function: str = self._get_function_word(context)
-        # function: str = self._get_next_word(context, lambda w: any("fn_" + w in f.name for f in self.functions))
         for func in self.functions:
             if func.name == function:
                 return func
         else:
             raise ValueError(f"invalid function: {function}")
 
-    def _get_parameters(self, func: Function, prompt: Prompt) -> dict[str, str | float]:
+    def _get_parameters(self, func: Function,
+                        prompt: Prompt) -> dict[str, str | float]:
         params: dict[str, str | float] = {}
         context = self._build_context_parameters(prompt, func)
         for arg in func.parameters:
