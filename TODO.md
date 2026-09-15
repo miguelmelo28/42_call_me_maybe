@@ -1,3 +1,4 @@
 - [ ] Need to think how to fix the whole numbers/integer/types thing
 - [ ] Test parsing/ask other people how they did it
 - [ ] Change the default paths to whatever its supposed to be
+- [ ] Fix the prompt

@@ -133,6 +133,7 @@ class LLM_Function:
         for arg in func.parameters:
             arg_type: TypeDict = func.parameters[arg]["type"]
             context += f"{arg}({arg_type}) = "
+            print(arg_type)
             match arg_type:
                 case "string":
                     param = self._get_next_string(context)
