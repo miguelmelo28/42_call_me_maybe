@@ -1,4 +1,4 @@
-from .parser import Function, Prompt
+from .parser import Function, Prompt, TypeDict
 from .output import Response
 from llm_sdk import Small_LLM_Model
 from pydantic import TypeAdapter
@@ -80,12 +80,24 @@ class LLM_Function:
         return string[1:string.rfind("'")]
 
     def _get_number(self, context: str) -> float:
-        number: str = self._get_next_word(context)
         allowed = set("0123456789.")
-        number: str = "".join(c for c in number if c in allowed)
-        if number[-1] == '.':
-            number = number[:-1]
+        number: str = self._get_next_word(context,
+                                        lambda w: all(c in allowed for c in w))
         return float(number)
+
+
+    def _get_integer(self, context: str) -> int:
+        allowed = set("0123456789")
+        number: str = self._get_next_word(context,
+                                        lambda w: all(c in allowed for c in w))
+        return int(number)
+
+
+    def _get_bool(self, context: str) -> bool:
+        allowed = {"True", "False"}
+        boolean: str = self._get_next_word(context)
+                                        # lambda w: w in allowed)
+        return bool(boolean)
 
     def _get_next_word(self, context: str,
                        condition: Callable[[str], bool] = lambda w: True) -> str:
@@ -96,9 +108,9 @@ class LLM_Function:
             chosens = sorted(enumerate(next), key=lambda x: x[1], reverse=True)
             for i in count():
                 idx_chosen = chosens[i][0]
-                # print(chosens[i])
+                print(chosens[i])
                 wordpart = word + self.llm_model.decode([idx_chosen])
-                # print(f"\n{word=}\n{wordpart=}\n")
+                print(f"\n{word=}\n{wordpart=}\n")
                 if condition(wordpart.strip()):
                     word = wordpart
                     break
@@ -119,13 +131,17 @@ class LLM_Function:
         params: dict[str, str | float] = {}
         context = self._build_context_parameters(prompt, func)
         for arg in func.parameters:
-            arg_type = func.parameters[arg]["type"]
+            arg_type: TypeDict = func.parameters[arg]["type"]
             context += f"{arg}({arg_type}) = "
             match arg_type:
                 case "string":
                     param = self._get_next_string(context)
                 case "number":
                     param = self._get_number(context)
+                case "boolean":
+                    param = self._get_bool(context)
+                case "integer":
+                    param = self._get_integer(context)
             params[arg] = param
             context += f'{str(param)}\n'
         print(context)

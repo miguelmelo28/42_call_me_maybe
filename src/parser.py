@@ -1,7 +1,8 @@
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter
 from typing import Literal, Self
 
-type TypeDict = dict[Literal["type"], Literal["number", "string"]]
+type TypeDict = dict[Literal["type"], Literal["number", "string",
+                                               "integer", "boolean"]]
 
 
 class Function(BaseModel):
