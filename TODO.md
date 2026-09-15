@@ -2,3 +2,5 @@
 - [ ] Test parsing/ask other people how they did it
 - [ ] Change the default paths to whatever its supposed to be
 - [ ] Fix the prompt
+- [ ] Handle exceptions
+- [ ] Handle infinite searches for words 
