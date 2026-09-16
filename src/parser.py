@@ -20,7 +20,11 @@ class Function(BaseModel):
         return self.name + ' : ' + self.description
 
     def get_formated(self) -> str:
-        return f"The function {self.name} can {self.description}"
+        parameters = '- ' + "\n- ".join(f'{p}: {self.parameters[p]["type"]}' for p in self.parameters)
+        return (f"Function: {self.name}\n\n"
+                f"Description: {self.description}\n\n"
+                f"Parameters:\n{parameters}")
+                # f"Returns: {self.returns['type']}")
 
 
 class Prompt(BaseModel):
