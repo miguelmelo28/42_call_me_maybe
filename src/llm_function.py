@@ -94,10 +94,27 @@ class LLM_Function:
 
 
     def _get_bool(self, context: str) -> bool:
-        allowed = {"True", "False"}
-        boolean: str = self._get_next_word(context)
-                                        # lambda w: w in allowed)
-        return bool(boolean)
+        word = ""
+        while True:
+            encoded_ctxt = self.llm_model.encode(context + word).tolist()[0]
+            next = self.llm_model.get_logits_from_input_ids(encoded_ctxt)
+            chosens = sorted(enumerate(next), key=lambda x: x[1], reverse=True)
+            for i in range(self.max_tries):
+                idx_chosen = chosens[i][0]
+                token = self.llm_model.decode([idx_chosen]).strip().lower()
+                token = token.rstrip(".,;:!?\"'")
+                if not token:
+                    continue
+                candidate = (word + token).strip().lower()
+                if candidate in ("true", "false"):
+                    return candidate == "true"
+                true_prefix = "true".startswith(candidate)
+                false_prefix = "false".startswith(candidate)
+                if true_prefix or false_prefix:
+                    word = candidate
+                    break
+            else:
+                raise ValueError(f"could not parse a boolean from {word!r}")
 
     def _get_next_word(self, context: str,
                        condition: Callable[[str], bool] = lambda w: True) -> str:
@@ -127,8 +144,8 @@ class LLM_Function:
             raise ValueError(f"invalid function: {function}")
 
     def _get_parameters(self, func: Function,
-                        prompt: Prompt) -> dict[str, str | float]:
-        params: dict[str, str | float] = {}
+                        prompt: Prompt) -> dict[str, str | float | bool]:
+        params: dict[str, str | float | bool] = {}
         context = self._build_context_parameters(prompt, func)
         for arg in func.parameters:
             arg_type: TypeDict = func.parameters[arg]["type"]

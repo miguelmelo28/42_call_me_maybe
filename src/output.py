@@ -8,7 +8,7 @@ class Response(BaseModel):
 
     prompt: Prompt
     function: Function = Field(serialization_alias="name")
-    parameters: dict[str, str | float]
+    parameters: dict[str, str | float | bool]
 
     @model_validator(mode="after")
     def valid_parameters(self) -> Self:
@@ -26,7 +26,8 @@ class Response(BaseModel):
     @model_validator(mode="after")
     def check_param_types(self) -> Self:
         for param in self.parameters:
-            dictionary: dict[str, type] = {"number": float, "string": str}
+            dictionary: dict[str, type] = {"number": float, "string": str,
+                                           "boolean": bool}
             _type: str = self.function.parameters[param]["type"]
             if not isinstance(self.parameters[param], dictionary[_type]):
                 raise ValueError(f"Argument {param} expects {_type}, got "
