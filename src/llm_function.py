@@ -1,5 +1,4 @@
 from .parser import Function, Prompt, TypeDict
-from .prompt_builder import PromptBuilder
 from .output import Response
 from llm_sdk import Small_LLM_Model
 from pydantic import TypeAdapter
@@ -10,6 +9,7 @@ from typing import Literal
 from time import sleep
 from typing import TypedDict
 from dataclasses import dataclass
+
 
 @dataclass(slots=True)
 class SpecialTokens():
@@ -34,10 +34,72 @@ class LLM:
     def decode(self, token_id: int) -> str:
         return self.model.decode([token_id])
 
-class ConstrainedGenerator:
-    def __init__(self, llm: LLM):
+class PromptBuilder:
+    def __init__(self, llm: LLM, functions: list[Function], question: str, think: bool = False):
         self.llm = llm
-        self.max_tries = 1000
+        self.functions = functions
+        self.question = question
+        self.think = think
+
+    def function(self) -> str:
+        functions: str = "- " + "\n- ".join(f.name for f in self.functions)
+        system: str = f"""You are a function-selection assistant.
+
+Your task is to select the single function from the available functions that is most appropriate for solving the user's problem.
+
+Available functions:
+{functions}
+
+Choose exactly one function.
+
+Respond with only the name of the selected function."""
+        user: str = self.question
+        return (
+            f"{self.context_block('system', system)}"
+            f"\n{self.context_block('user', user)}"
+            f"\n{self.assistant_block()}"
+        )
+
+    def parameter(
+        self, function: Function, param: str) -> str:
+        system: str = f"""You are a function-parameter extraction assistant.
+
+Your job is to identify the value of the requested parameter.
+
+IMPORTANT:
+- Output ONLY the parameter value.
+- Never output the parameter name.
+- Never output explanations.
+- Never output JSON.
+- Do not calculate the function's return value.
+
+{function.get_formated()}
+
+Extract the following parameter:
+{param} ({function.parameters[param]['type']})
+
+Return only the value of {param}."""
+        user: str = self.question
+
+        return (
+            f"{self.context_block('system', system)}"
+            f"\n{self.context_block('user', user)}"
+            f"\n{self.assistant_block()}"
+        )
+
+    def context_block(self, profile: Literal["user", "system"], message: str) -> str:
+        return f"{self.llm.special_tokens.start_ctx_block}{profile}\n{message}\n{self.llm.special_tokens.end_ctx_block}"
+
+    def assistant_block(self) -> str:
+        think_str: str = f"{self.llm.special_tokens.start_think}\n\n{self.llm.special_tokens.end_think}\n\n"
+        # think_str: str = ""
+        return f"{self.llm.special_tokens.start_ctx_block}assistant\n" + (think_str if not self.think else "")
+
+
+class ConstrainedGenerator:
+    def __init__(self, llm: LLM, max_tries: int = 1000):
+        self.llm = llm
+        self.max_tries = max_tries
         self.end_token = self.llm.model.encode(self.llm.special_tokens.end_ctx_block)[0][0]
 
     def unconstrained(self, context: str) -> str:
@@ -46,10 +108,9 @@ class ConstrainedGenerator:
             chosens = self.llm.next_token(context + word)
             idx_chosen = chosens[0][0]
             word += self.llm.decode(idx_chosen)
-            # print(word, idx_chosen)
+            print(word, idx_chosen)
             if idx_chosen == self.end_token:
-                break
-        return word
+                return word
 
 
     def word(
@@ -58,53 +119,47 @@ class ConstrainedGenerator:
         word = ""
         while len(word_list := word.split()) < 2 and not word.endswith(" "):
             chosens = self.llm.next_token(context + word)
-            for i in count():
+            for i in range(self.max_tries):
                 idx_chosen = chosens[i][0]
+                if idx_chosen == self.end_token:
+                    return word_list[0]
                 # print(chosens[i])
                 wordpart = word + self.llm.decode(idx_chosen)
                 # print(f"\n{word=}\n{wordpart=}\n")
-                print(word, idx_chosen)
+                print(i, wordpart, idx_chosen)
                 if condition(wordpart.strip()):
                     word = wordpart
                     break
+            else:
+                raise ValueError("could not find the answer")
         # print(word)
         return word_list[0]
 
-    def function(self, context: str, functions_: list[Function]) -> str:
-        word = ""
-        functions = [f.name for f in functions_]
-        # print(context)
-        while (word).strip() not in functions:
-            chosens = self.llm.next_token(context + word)
-            for i in range(1000):
-                idx_chosen = chosens[i][0]
-                # print(chosens[i])
-                wordpart = self.llm.decode(idx_chosen).strip()
-                # print(f"\n{word=}\n{wordpart=}\n")
-                # sleep(0.05)
+    def function(self, context: str, functions: list[Function]) -> Function:
+        function_str = self.word(context, lambda k: any(func.name.startswith(k) for func in functions))
 
-                if any(f.startswith(word + wordpart) for f in functions) and wordpart:
-                    word += wordpart
-                    break
-            else:
-                functions = [func for func in functions if word not in func]
-                word = ""
-                # print(functions)
-        # print(word)
-        return word.strip()
+        for func in functions:
+            if func.name == function_str:
+                return func
+        else:
+            raise ValueError(f"invalid function: {function_str}")
 
     def string(self, context: str) -> str:
-        string = "'"
-        while not (string.endswith("'") or string.endswith("\n")) or len(string) <= 1:
-            chosens = self.llm.next_token(context + string)
-            idx_chosen = chosens[0][0]
-            wordpart = self.llm.decode(idx_chosen)
-            string += wordpart
-            # print(string)
-        return string[1 : string.rfind("'")]
+        # string = ""
+        # while True:
+        #     chosens = self.llm.next_token(context + string)
+        #     idx_chosen = chosens[0][0]
+        #     wordpart = self.llm.decode(idx_chosen)
+        #     string += wordpart
+        #     if idx_chosen == self.end_token:
+        #         break
+        #     # print(string)
+
+        return self.unconstrained(context).strip("\"'")
 
     def number(self, context: str) -> float:
-        number = self.word(context).strip()
+        digits = set("0123456789-.")
+        number = self.word(context, lambda k: all(c in digits for c in k) and k.count(".") <= 1 and "-" not in k[1:]).strip()
 
         try:
             return float(number)
@@ -112,7 +167,8 @@ class ConstrainedGenerator:
             raise ValueError(f"Could not generate a valid number: {number!r}")
 
     def integer(self, context: str) -> int:
-        number: str = self.word(context).strip()
+        digits = set("0123456789-")
+        number: str = self.word(context, lambda k: all(c in digits for c in k) and "-" not in k[1:]).strip()
 
         try:
             return int(number)
@@ -120,59 +176,41 @@ class ConstrainedGenerator:
             raise ValueError(f"Could not generate a valid number: {number!r}")
 
     def bool(self, context: str) -> bool:
-        word = ""
-        while True:
-            chosens = self.llm.next_token(context)
-            for i in range(self.max_tries):
-                idx_chosen = chosens[i][0]
-                token = self.llm.decode(idx_chosen).strip().lower()
-                token = token.rstrip(".,;:!?\"'")
-                if not token:
-                    continue
-                candidate = (word + token).strip().lower()
-                if candidate in ("true", "false"):
-                    return candidate == "true"
-                if "true".startswith(candidate) or "false".startswith(candidate):
-                    word = candidate
-                    break
-            else:
-                raise ValueError(f"could not parse a boolean from {word!r}")
+        booleans = ["true", "false"]
+        answer = self.word(context, lambda k: any(k.lower() in b for b in booleans)).lower()
+
+        if answer not in booleans:
+                raise ValueError(f"Invalid booleal: {answer}")
+        return answer == "true"
 
 class LLM_Function:
     def __init__(
         self,
-        llm_model: Small_LLM_Model,
+        llm: LLM,
         functions: list[Function],
         special_tokens: SpecialTokens,
         max_tries: int = 1000,
     ) -> None:
-        self.llm_model = llm_model
+        self.llm = llm
         self.functions = functions
         self.max_tries = max_tries
-        self.constrained_generator = ConstrainedGenerator(LLM(llm_model, special_tokens))
+        self.constrained_generator = ConstrainedGenerator(llm)
 
     @classmethod
-    def from_json(cls, llm_model: Small_LLM_Model, json_functions: str, special_tokens: SpecialTokens) -> Self:
+    def from_json(cls, llm: LLM, json_functions: str, special_tokens: SpecialTokens) -> Self:
         functions = TypeAdapter(list[Function]).validate_json(json_functions)
-        return cls(llm_model, functions, special_tokens)
+        return cls(llm, functions, special_tokens)
 
     def get_response(self, prompt: Prompt) -> Response:
-        prompt_builder = PromptBuilder(self.functions, prompt.prompt, think = False)
+        prompt_builder = PromptBuilder(self.llm,self.functions, prompt.prompt, think = False)
         function: Function = self._get_function(prompt_builder)
         parameters = self._get_parameters(function, prompt_builder)
         return Response(prompt=prompt, function=function, parameters=parameters)
 
     def _get_function(self, prompt_builder: PromptBuilder) -> Function:
         context: str = prompt_builder.function()
-        print(context)
-        # function: str = self.constrained_generator.function(context, self.functions)
-        function: str = self.constrained_generator.function(context, self.functions)
-        # print(function)
-        for func in self.functions:
-            if func.name == function:
-                return func
-        else:
-            raise ValueError(f"invalid function: {function}")
+        # print(context)
+        return self.constrained_generator.function(context, self.functions)
 
     def _get_parameters(self, func: Function, prompt_builder: PromptBuilder) -> dict[str, str | float]:
         params: dict[str, str | float] = {}
@@ -192,7 +230,7 @@ class LLM_Function:
                 case _:
                     raise ValueError(f"Unsupported parameter type: {arg_type}")
             params[arg] = param
-            print(params)
+            # print(params)
         return params
 
 

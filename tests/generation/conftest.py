@@ -1,22 +1,25 @@
-from src.llm_function import LLM_Function
+from src.llm_function import LLM_Function, LLM
 from llm_sdk import Small_LLM_Model
 from src.parser import Function, Prompt
 from pytest import fixture
+from src.prompt_builder import SpecialTokens
 import pytest
 from pydantic import TypeAdapter
 
+SPECIAL_TOKENS = SpecialTokens(start_think="<think>",end_think="</think>",start_ctx_block="<|im_start|>", end_ctx_block="<|im_end|>")
+
 @pytest.fixture(scope="session")
-def model() -> Small_LLM_Model:
-    return Small_LLM_Model()
+def model() -> LLM:
+    return LLM(Small_LLM_Model(), SPECIAL_TOKENS)
 
 @fixture(scope="session")
 def function_llm_from_json(model) -> LLM_Function:
     with open("tests/input/functions_definition.json") as f:
-        return LLM_Function.from_json(model, f.read())
+        return LLM_Function.from_json(model, f.read(), SPECIAL_TOKENS)
 
 @fixture(scope="session")
 def empty_function_llm(model) -> LLM_Function:
-    return LLM_Function(model, [])
+    return LLM_Function(model, [], SPECIAL_TOKENS)
 
 @fixture(scope="session")
 def adder_function() -> Function:
@@ -30,12 +33,12 @@ def reverse_function() -> Function:
 
 
 @fixture(scope="session")
-def adder_prompt() -> Function:
+def adder_prompt() -> Prompt:
     return Prompt(prompt="What is the adition of 5 + 2?")
 
 @fixture(scope="session")
 def function_llm_adder(adder_function, model):
-    return LLM_Function(model, [adder_function])
+    return LLM_Function(model, [adder_function], SPECIAL_TOKENS)
 
 @fixture(scope = "session")
 def prompt_list_from_json() -> list[Prompt]:

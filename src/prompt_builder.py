@@ -1,13 +1,37 @@
-from .llm_function import LLM
 from typing import Literal
 from .parser import Function
+from llm_sdk import Small_LLM_Model
+from dataclasses import dataclass
+
+@dataclass(slots=True)
+class SpecialTokens():
+    start_think: str
+    end_think: str
+    start_ctx_block: str
+    end_ctx_block: str
+
+class LLM:
+    def __init__(self, model: Small_LLM_Model, special_tokens: SpecialTokens):
+        self.model = model
+        self.special_tokens = special_tokens
+
+    def next_token(self, context: str) -> list[tuple[int, float]]:
+        encoded_ctx: list[int] = self.model.encode(context).tolist()[0]
+        next: list[float] = self.model.get_logits_from_input_ids(encoded_ctx)
+        chosen: list[tuple[int, float]] = sorted(
+            enumerate(next), key=lambda x: x[1], reverse=True
+        )
+        return chosen
+
+    def decode(self, token_id: int) -> str:
+        return self.model.decode([token_id])
 
 class PromptBuilder:
     def __init__(self, llm: LLM, functions: list[Function], question: str, think: bool = False):
+        self.llm = llm
         self.functions = functions
         self.question = question
         self.think = think
-        self.llm = llm
 
     def function(self) -> str:
         functions: str = "- " + "\n- ".join(f.name for f in self.functions)
