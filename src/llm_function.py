@@ -177,7 +177,7 @@ class ConstrainedGenerator:
 
     def bool(self, context: str) -> bool:
         booleans = ["true", "false"]
-        answer = self.word(context, lambda k: any(b.startswith(k.strip()) for b in booleans)).lower()
+        answer = self.word(context, lambda k: any(b.startswith(k.strip().lower()) for b in booleans)).lower()
 
         if answer not in booleans:
                 raise ValueError(f"Invalid booleal: {answer}")
