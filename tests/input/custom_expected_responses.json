@@ -1,0 +1,106 @@
+[
+  {
+    "prompt": "Multiply 6 by 7",
+    "name": "fn_multiply_numbers",
+    "parameters": {"a": 6.0, "b": 7.0}
+  },
+  {
+    "prompt": "What is the product of 12.5 and 4?",
+    "name": "fn_multiply_numbers",
+    "parameters": {"a": 12.5, "b": 4.0}
+  },
+  {
+    "prompt": "Multiply -3 by 4",
+    "name": "fn_multiply_numbers",
+    "parameters": {"a": -3.0, "b": 4.0}
+  },
+  {
+    "prompt": "Concatenate 'hello' and 'world' using a space as the separator",
+    "name": "fn_concatenate_strings",
+    "parameters": {
+      "left": "hello",
+      "right": "world",
+      "separator": " "
+    }
+  },
+  {
+    "prompt": "Join 'foo' and 'bar' with a hyphen",
+    "name": "fn_concatenate_strings",
+    "parameters": {"left": "foo", "right": "bar", "separator": "-"}
+  },
+  {
+    "prompt": "Concatenate 'a' and 'b' with no separator",
+    "name": "fn_concatenate_strings",
+    "parameters": {"left": "a", "right": "b", "separator": ""}
+  },
+  {
+    "prompt": "Convert 'quiet please' to uppercase",
+    "name": "fn_to_uppercase",
+    "parameters": {"text": "quiet please"}
+  },
+  {
+    "prompt": "Convert 'hello, world!' to uppercase",
+    "name": "fn_to_uppercase",
+    "parameters": {"text": "hello, world!"}
+  },
+  {
+    "prompt": "How many vowels are in the word 'banana'?",
+    "name": "fn_count_vowels",
+    "parameters": {"text": "banana"}
+  },
+  {
+    "prompt": "Is 'racecar' a palindrome?",
+    "name": "fn_is_palindrome",
+    "parameters": {"text": "racecar"}
+  },
+  {
+    "prompt": "Check whether 'hello' is a palindrome",
+    "name": "fn_is_palindrome",
+    "parameters": {"text": "hello"}
+  },
+  {
+    "prompt": "Is a person who is 21 years old an adult?",
+    "name": "fn_is_adult",
+    "parameters": {"age": 21}
+  },
+  {
+    "prompt": "A person is 15 years old. Are they an adult?",
+    "name": "fn_is_adult",
+    "parameters": {"age": 15}
+  },
+  {
+    "prompt": "Calculate 2 to the power of 10",
+    "name": "fn_power",
+    "parameters": {"base": 2.0, "exponent": 10}
+  },
+  {
+    "prompt": "Repeat the word 'hi' 3 times",
+    "name": "fn_repeat_string",
+    "parameters": {"text": "hi", "times": 3}
+  },
+  {
+    "prompt": "Greet alice formally",
+    "name": "fn_greet_formally",
+    "parameters": {"name": "alice", "formal": true}
+  },
+  {
+    "prompt": "Say hi to bob in a casual way",
+    "name": "fn_greet_formally",
+    "parameters": {"name": "bob", "formal": false}
+  },
+  {
+    "prompt": "What is the average of 2, 4, and 6?",
+    "name": "fn_average",
+    "parameters": {"a": 2.0, "b": 4.0, "c": 6.0}
+  },
+  {
+    "prompt": "Does 'the quick brown fox' contain the word 'fox'?",
+    "name": "fn_contains_word",
+    "parameters": {"text": "the quick brown fox", "word": "fox"}
+  },
+  {
+    "prompt": "Clamp 15 between 0 and 10",
+    "name": "fn_clamp",
+    "parameters": {"value": 15.0, "minimum": 0.0, "maximum": 10.0}
+  }
+]

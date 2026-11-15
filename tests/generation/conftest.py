@@ -1,46 +1,62 @@
-from src.llm_function import LLM_Function, LLM
-from llm_sdk import Small_LLM_Model
-from src.parser import Function, Prompt
-from pytest import fixture
-from src.prompt_builder import SpecialTokens
-import pytest
-from pydantic import TypeAdapter
+"""Fixtures specific to the generation tests.
 
-SPECIAL_TOKENS = SpecialTokens(start_think="<think>",end_think="</think>",start_ctx_block="<|im_start|>", end_ctx_block="<|im_end|>")
+The input data and small ``Function`` fixtures live in ``tests/conftest.py``.
+The expensive ``model`` fixture here loads the real local model, so tests that
+use it are marked ``slow``.
+"""
+
+import pytest
+
+from llm_sdk import Small_LLM_Model
+from src.llm_function import LLM, LLM_Function, PromptBuilder
+from src.parser import Function
+from tests.generation.fakes import SPECIAL_TOKENS, ScriptedLLM, scripted_llm_steps
+
+
+@pytest.fixture
+def llm_stub() -> ScriptedLLM:
+    """An LLM double that only provides ``special_tokens``.
+
+    ``PromptBuilder`` never calls the model, so this is enough for prompt tests.
+    """
+    return scripted_llm_steps([])
+
+
+@pytest.fixture
+def prompt_builder(
+    llm_stub: ScriptedLLM, adder_function: Function, greet_function: Function
+) -> PromptBuilder:
+    return PromptBuilder(
+        llm_stub,
+        [adder_function, greet_function],
+        "What is the sum of 2 and 3?",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Expensive fixtures: these load the real model
+# ---------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="session")
 def model() -> LLM:
     return LLM(Small_LLM_Model(), SPECIAL_TOKENS)
 
-@fixture(scope="session")
-def function_llm_from_json(model) -> LLM_Function:
-    with open("tests/input/functions_definition.json") as f:
-        return LLM_Function.from_json(model, f.read(), SPECIAL_TOKENS)
 
-@fixture(scope="session")
-def empty_function_llm(model) -> LLM_Function:
-    return LLM_Function(model, [], SPECIAL_TOKENS)
-
-@fixture(scope="session")
-def adder_function() -> Function:
-    return Function(name="fn_add_numbers", description="adds two numbers together",
-                    parameters={"a": {"type": "number"}, "b": {"type": "number"}}, returns={"type": "number"})
-
-@fixture(scope="session")
-def reverse_function() -> Function:
-    return Function(name="fn_reverse_str", description="reverses a string and returns the reversed result",
-                    parameters={"s": {"type": "string"}}, returns={"type": "string"})
+@pytest.fixture(scope="session")
+def function_llm_from_json(model: LLM, functions_json: str) -> LLM_Function:
+    return LLM_Function.from_json(model, functions_json, SPECIAL_TOKENS)
 
 
-@fixture(scope="session")
-def adder_prompt() -> Prompt:
-    return Prompt(prompt="What is the adition of 5 + 2?")
-
-@fixture(scope="session")
-def function_llm_adder(adder_function, model):
+@pytest.fixture(scope="session")
+def function_llm_adder(model: LLM, adder_function: Function) -> LLM_Function:
     return LLM_Function(model, [adder_function], SPECIAL_TOKENS)
 
-@fixture(scope = "session")
-def prompt_list_from_json() -> list[Prompt]:
-    with open("tests/input/function_calling_tests.json") as f:
-        return TypeAdapter(list[Prompt]).validate_json(f.read())
+
+@pytest.fixture(scope="session")
+def custom_function_llm(
+    model: LLM, custom_functions_json: str
+) -> LLM_Function:
+    return LLM_Function.from_json(
+        model, custom_functions_json, SPECIAL_TOKENS
+    )

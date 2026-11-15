@@ -1,0 +1,109 @@
+[
+  {
+    "name": "fn_multiply_numbers",
+    "description": "Multiply two numbers together and return their product.",
+    "parameters": {
+      "a": {"type": "number"},
+      "b": {"type": "number"}
+    },
+    "returns": {"type": "number"}
+  },
+  {
+    "name": "fn_concatenate_strings",
+    "description": "Join two strings together using a separator.",
+    "parameters": {
+      "left": {"type": "string"},
+      "right": {"type": "string"},
+      "separator": {"type": "string"}
+    },
+    "returns": {"type": "string"}
+  },
+  {
+    "name": "fn_to_uppercase",
+    "description": "Convert a string to uppercase.",
+    "parameters": {
+      "text": {"type": "string"}
+    },
+    "returns": {"type": "string"}
+  },
+  {
+    "name": "fn_count_vowels",
+    "description": "Count how many vowels appear in a string.",
+    "parameters": {
+      "text": {"type": "string"}
+    },
+    "returns": {"type": "integer"}
+  },
+  {
+    "name": "fn_is_palindrome",
+    "description": "Check whether a string reads the same forwards and backwards.",
+    "parameters": {
+      "text": {"type": "string"}
+    },
+    "returns": {"type": "boolean"}
+  },
+  {
+    "name": "fn_is_adult",
+    "description": "Check whether a person is an adult based on their age.",
+    "parameters": {
+      "age": {"type": "integer"}
+    },
+    "returns": {"type": "boolean"}
+  },
+  {
+    "name": "fn_power",
+    "description": "Raise a number to an integer exponent.",
+    "parameters": {
+      "base": {"type": "number"},
+      "exponent": {"type": "integer"}
+    },
+    "returns": {"type": "number"}
+  },
+  {
+    "name": "fn_repeat_string",
+    "description": "Repeat a string a given number of times.",
+    "parameters": {
+      "text": {"type": "string"},
+      "times": {"type": "integer"}
+    },
+    "returns": {"type": "string"}
+  },
+  {
+    "name": "fn_greet_formally",
+    "description": "Greet a person, either formally or casually.",
+    "parameters": {
+      "name": {"type": "string"},
+      "formal": {"type": "boolean"}
+    },
+    "returns": {"type": "string"}
+  },
+  {
+    "name": "fn_average",
+    "description": "Calculate the average of three numbers.",
+    "parameters": {
+      "a": {"type": "number"},
+      "b": {"type": "number"},
+      "c": {"type": "number"}
+    },
+    "returns": {"type": "number"}
+  },
+  {
+    "name": "fn_contains_word",
+    "description": "Check whether a text contains a specific word.",
+    "parameters": {
+      "text": {"type": "string"},
+      "word": {"type": "string"}
+    },
+    "returns": {"type": "boolean"}
+  },
+  {
+    "name": "fn_clamp",
+    "description": "Clamp a number between a minimum and a maximum.",
+    "parameters": {
+      "value": {"type": "number"},
+      "minimum": {"type": "number"},
+      "maximum": {"type": "number"}
+    },
+    "returns": {"type": "number"}
+  }
+]

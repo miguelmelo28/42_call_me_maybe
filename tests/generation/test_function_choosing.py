@@ -1,60 +1,118 @@
-from src.llm_function import LLM_Function
-from llm_sdk import Small_LLM_Model
-from src.parser import Function, Prompt
-from pytest import fixture
+"""Tests for function selection (``LLM_Function._get_function``)."""
+
 import pytest
-from pydantic import TypeAdapter
+
+from src.llm_function import LLM_Function, PromptBuilder
+from src.parser import Function, Prompt
+from tests.generation.fakes import (
+    SPECIAL_TOKENS,
+    ScriptedLLM,
+    scripted_llm,
+    scripted_llm_answers,
+)
 
 
-json_prompt_functions = ["fn_add_numbers",
-                         "fn_add_numbers",
-                         "fn_greet",
-                         "fn_greet",
-                         "fn_reverse_string",
-                         "fn_reverse_string",
-                         "fn_get_square_root",
-                         "fn_get_square_root",
-                         "fn_substitute_string_with_regex",
-                         "fn_substitute_string_with_regex",
-                         "fn_substitute_string_with_regex"]
-
-def prompt_list_from_json() -> list[Prompt]:
-    with open("tests/input/function_calling_tests.json") as f:
-        return TypeAdapter(list[Prompt]).validate_json(f.read())
-
-# @pytest.mark.parametrize("phrase", ["coding is my", "the yellow fruit that monkeys eat is called", "queer people are", "the correct function to cerate a "])
-# def test_get_next_word(empty_function_llm: LLM_Function, phrase: str):
-#     wd = empty_function_llm._get_next_word(phrase)
-#     print(wd)
-#     assert len(wd.split()) == 1
-
-# @pytest.mark.parametrize("condition", [lambda k: 'a' not in k, lambda k: 'pear' in k])
-# def test_get_next_word_condition(empty_function_llm: LLM_Function, condition):
-#     phrase = "the yellow fruit that monkeys eat is called a"
-#     wd = empty_function_llm._get_next_word(phrase)
-#     wd_condition = empty_function_llm._get_next_word(phrase, condition)
-#     print(f"{wd} != {wd_condition}")
-#     assert condition(wd_condition)
+def make_llm_function(
+    llm: ScriptedLLM, functions: list[Function]
+) -> LLM_Function:
+    return LLM_Function(llm, functions, SPECIAL_TOKENS)  # type: ignore[arg-type]
 
 
-@pytest.mark.parametrize("prompt", ["What is the adition of 5 + 2?", "Please add 5 and 2", "Add 2 and 5", "Sum of both 5 and 2"])
-def test_adder_example(function_llm_adder: LLM_Function, prompt: str):
-    context = function_llm_adder._build_context(Prompt(prompt=prompt))
-    func = function_llm_adder._get_function(context)
-    print(func)
-    assert func.name == "fn_add_numbers"
+def make_builder(
+    llm: ScriptedLLM, functions: list[Function], question: str
+) -> PromptBuilder:
+    return PromptBuilder(llm, functions, question)  # type: ignore[arg-type]
 
 
-@pytest.mark.parametrize("prompt", ["What is the adition of 5 + 2?", "Please add 5 and 2", "Add 2 and 5", "Sum of both 5 and 2"])
-def test_adder_json(function_llm_from_json: LLM_Function, prompt: str):
-    context = function_llm_from_json._build_context(Prompt(prompt=prompt))
-    func = function_llm_from_json._get_function(context)
-    print(func)
-    assert func.name == "fn_add_numbers"
+def test_get_function_selects_the_generated_function(
+    adder_function: Function,
+) -> None:
+    llm = scripted_llm_answers("fn_add_numbers")
+    llm_function = make_llm_function(llm, [adder_function])
+    builder = make_builder(llm, [adder_function], "add 2 and 3")
 
-@pytest.mark.parametrize("prompt, answer", list(zip(prompt_list_from_json(), json_prompt_functions)))
-def test_all_json_prompts_and_functions(prompt: Prompt, answer: str, function_llm_from_json):
-    context = function_llm_from_json._build_context(prompt)
-    func = function_llm_from_json._get_function(context)
-    print(func)
-    assert func.name == answer
+    result = llm_function._get_function(builder)
+
+    assert result == adder_function
+
+
+def test_get_function_works_across_several_tokens(
+    adder_function: Function,
+) -> None:
+    llm = scripted_llm("fn_add", "_numbers")
+    llm_function = make_llm_function(llm, [adder_function])
+    builder = make_builder(llm, [adder_function], "add 2 and 3")
+
+    result = llm_function._get_function(builder)
+
+    assert result == adder_function
+
+
+def test_get_function_chooses_between_available_functions(
+    adder_function: Function, greet_function: Function
+) -> None:
+    llm = scripted_llm_answers("fn_greet")
+    llm_function = make_llm_function(llm, [adder_function, greet_function])
+    builder = make_builder(
+        llm, [adder_function, greet_function], "say hello to shrek"
+    )
+
+    result = llm_function._get_function(builder)
+
+    assert result == greet_function
+
+
+def test_get_function_sends_the_function_prompt_to_the_generator(
+    adder_function: Function,
+) -> None:
+    llm = scripted_llm_answers("fn_add_numbers")
+    llm_function = make_llm_function(llm, [adder_function])
+    builder = make_builder(llm, [adder_function], "add 2 and 3")
+
+    llm_function._get_function(builder)
+
+    assert llm.contexts[0] == builder.function()
+    assert "fn_add_numbers" in llm.contexts[0]
+
+
+def test_get_function_rejects_an_incomplete_name(
+    adder_function: Function,
+) -> None:
+    llm = scripted_llm("fn_add")
+    llm_function = make_llm_function(llm, [adder_function])
+    builder = make_builder(llm, [adder_function], "add 2 and 3")
+
+    with pytest.raises(ValueError, match="invalid function: fn_add"):
+        llm_function._get_function(builder)
+
+
+@pytest.mark.slow
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "What is the addition of 5 + 2?",
+        "Please add 5 and 2",
+    ],
+)
+def test_get_function_real_model(function_llm_adder, prompt: str) -> None:
+    builder = PromptBuilder(
+        function_llm_adder.llm, function_llm_adder.functions, prompt
+    )
+
+    result = function_llm_adder._get_function(builder)
+
+    assert result.name == "fn_add_numbers"
+
+
+@pytest.mark.slow
+def test_get_function_real_model_uses_the_prompt(
+    function_llm_from_json,
+) -> None:
+    prompt = Prompt(prompt="Reverse the string 'hello'")
+    builder = PromptBuilder(
+        function_llm_from_json.llm, function_llm_from_json.functions, prompt.prompt
+    )
+
+    result = function_llm_from_json._get_function(builder)
+
+    assert result.name == "fn_reverse_string"
