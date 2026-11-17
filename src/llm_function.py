@@ -1,5 +1,5 @@
 from .parser import Function, Prompt, TypeDefinition
-from .output import Response
+from .output import Response, ValidTypes
 from llm_sdk import Small_LLM_Model
 from pydantic import TypeAdapter
 from typing import Self
@@ -61,21 +61,19 @@ Respond with only the name of the selected function."""
         )
 
     def parameter(
-        self, function: Function, param: str) -> str:
+            self, function: Function, previous_params: dict[str, ValidTypes], param: str) -> str:
         system: str = f"""You are a function-parameter extraction assistant.
 
 Your job is to identify the value of the requested parameter.
 
 IMPORTANT:
 - Output ONLY the parameter value.
-- Never output the parameter name.
+- Never output the name of the parameter.
 - Never output explanations.
 - Never output JSON.
 - Do not calculate the function's return value.
 
-{function.get_formated()}
-
-Extract the following parameter:
+{function.get_formated()}\n""" + '\n'.join([f"{key} = {value}" for key, value in previous_params.items()]) + f"""\n\nExtract the following parameter:
 {param} ({function.parameters[param]["type"]})
 
 Return only the value of {param}."""
@@ -219,9 +217,9 @@ class LLM_Function:
         return self.constrained_generator.function(context, self.functions)
 
     def _get_parameters(self, func: Function, prompt_builder: PromptBuilder) -> dict[str, str | float]:
-        params: dict[str, str | float] = {}
+        params: dict[str, ValidTypes] = {}
         for arg in func.parameters:
-            context = prompt_builder.parameter(func, arg)
+            context = prompt_builder.parameter(func, params, arg)
             print(context)
             arg_type = func.parameters[arg]["type"]
             match arg_type:
