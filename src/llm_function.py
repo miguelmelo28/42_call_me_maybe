@@ -120,9 +120,15 @@ class ConstrainedGenerator:
         while len(word_list := word.split()) < 2 and not word.endswith(" "):
             chosens = self.llm.next_token(context + word)
             for i in range(self.max_tries):
-                idx_chosen = chosens[i][0]
+                try:
+                    idx_chosen = chosens[i][0]
+                except IndexError:
+                    raise ValueError("Could not find the answer (llm response)")
                 if idx_chosen == self.end_token:
-                    return word_list[0]
+                    if word_list:
+                        return word_list[0]
+                    else:
+                        return ""
                 # print(chosens[i])
                 wordpart = word + self.llm.decode(idx_chosen)
                 # print(f"\n{word=}\n{wordpart=}\n")
@@ -131,7 +137,7 @@ class ConstrainedGenerator:
                     word = wordpart
                     break
             else:
-                raise ValueError("could not find the answer")
+                raise ValueError("could not find the answer (max tries exceeded)")
         # print(word)
         return word_list[0]
 
@@ -194,7 +200,7 @@ class LLM_Function:
         self.llm = llm
         self.functions = functions
         self.max_tries = max_tries
-        self.constrained_generator = ConstrainedGenerator(llm)
+        self.constrained_generator = ConstrainedGenerator(llm, max_tries)
 
     @classmethod
     def from_json(cls, llm: LLM, json_functions: str, special_tokens: SpecialTokens) -> Self:
