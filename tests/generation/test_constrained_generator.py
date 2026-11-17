@@ -6,6 +6,7 @@ unexpected model outputs.
 """
 
 import pytest
+import re
 
 from src.llm_function import ConstrainedGenerator, SpecialTokens
 from src.parser import Function
@@ -156,7 +157,7 @@ def test_word_raises_when_no_candidate_matches_within_max_tries() -> None:
     llm = scripted_llm_steps([[(1, "x"), (2, "y")]])
     generator = make_generator(llm, max_tries=2)
 
-    with pytest.raises(ValueError, match="could not find the answer"):
+    with pytest.raises(ValueError, match=re.escape("could not find the answer (max tries exceeded)")):
         generator.word("ctx", lambda value: False)
 
 
@@ -165,7 +166,7 @@ def test_word_raises_gracefully_when_candidates_are_exhausted() -> None:
     llm = scripted_llm_steps([[(1, "x")]])
     generator = make_generator(llm, max_tries=1000)
 
-    with pytest.raises(ValueError, match="could not find the answer"):
+    with pytest.raises(ValueError, match=re.escape("Could not find the answer (llm response)")):
         generator.word("ctx", lambda value: False)
 
 

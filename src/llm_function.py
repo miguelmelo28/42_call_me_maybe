@@ -1,4 +1,4 @@
-from .parser import Function, Prompt, TypeDict
+from .parser import Function, Prompt, TypeDefinition
 from .output import Response
 from llm_sdk import Small_LLM_Model
 from pydantic import TypeAdapter
@@ -76,7 +76,7 @@ IMPORTANT:
 {function.get_formated()}
 
 Extract the following parameter:
-{param} ({function.parameters[param]['type']})
+{param} ({function.parameters[param]["type"]})
 
 Return only the value of {param}."""
         user: str = self.question

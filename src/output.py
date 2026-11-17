@@ -16,6 +16,14 @@ class Response(BaseModel):
             raise ValueError("Given parameters don't match function parameter")
         return self
 
+
+    @model_validator(mode="after")
+    def turn_into_float(self) -> Self:
+        for param in self.parameters:
+            if self.function.parameters[param]["type"] == "number" and not isinstance(self.parameters[param], bool):
+                self.parameters[param] = float(self.parameters[param])
+        return self
+
     @model_validator(mode="after")
     def check_param_types(self) -> Self:
         for param in self.parameters:
