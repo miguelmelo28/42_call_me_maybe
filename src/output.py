@@ -1,14 +1,19 @@
 from .parser import Function, Prompt
 from pydantic import BaseModel, model_validator, field_serializer, ConfigDict, Field
 from typing import Self
+from functools import reduce
+from operator import or_
+from typing import TypeAlias
 
+ValidTypesDict: dict[str, type] = {"number": float, "integer": int, "boolean": bool, "string": str}
+ValidTypes: TypeAlias = reduce(or_, ValidTypesDict.values())
 
 class Response(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid", serialize_by_alias=True)
 
     prompt: Prompt
     function: Function = Field(serialization_alias="name")
-    parameters: dict[str, str | float | bool | int]
+    parameters: dict[str, ValidTypes]
 
     @model_validator(mode="after")
     def valid_parameters(self) -> Self:
@@ -27,10 +32,8 @@ class Response(BaseModel):
     @model_validator(mode="after")
     def check_param_types(self) -> Self:
         for param in self.parameters:
-            dictionary: dict[str, type] = {"number": float, "string": str,
-                                           "boolean": bool, "integer": int}
             _type: str = self.function.parameters[param]["type"]
-            if not isinstance(self.parameters[param], dictionary[_type]):
+            if not isinstance(self.parameters[param], ValidTypesDict[_type]):
                 raise ValueError(f"Argument {param} expects {_type}, got "
                                  f"{self.parameters[param]} (type "
                                  f"{type(self.parameters[param])}) instead")
